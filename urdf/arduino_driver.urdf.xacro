@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<!-- Basic differential drive mobile base -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="arduino_driver">
+  <xacro:arg name="prefix" default="" />
+
+  <xacro:include filename="$(find arduino_driver)/ros2_control/arduino_driver.ros2_control.xacro" />
+
+  <xacro:arduino_driver_ros2_control
+    name="arduino_hardware" prefix="$(arg prefix)" />
+
+  <link name="world" />
+  <link name="linkA" />
+  <link name="linkB" />
+  <link name="linkC" />
+  <joint name="ard_motorA" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="world" />
+    <child link="linkA" />
+    <axis xyz="0 1 0"/>
+    <limit upper="135" lower="45" effort="120" velocity="100"/>
+  </joint>
+  <joint name="ard_motorB" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="world" />
+    <child link="linkB" />
+    <axis xyz="0 1 0"/>
+    <limit upper="135" lower="45" effort="120" velocity="100"/>
+  </joint>
+  <joint name="ard_motorC" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="world" />
+    <child link="linkC" />
+    <axis xyz="0 1 0"/>
+    <limit upper="135" lower="45" effort="120" velocity="100"/>
+  </joint>
+
+</robot>

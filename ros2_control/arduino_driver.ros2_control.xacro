@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:macro name="arduino_driver_ros2_control" params="name prefix">
+        <ros2_control name="${name}" type="system">
+            <hardware>
+                <plugin>arduino_driver/ThreeDOFArduinoHardware</plugin>
+                <param name="motor_A_name">ard_motorA</param>
+                <param name="motor_B_name">ard_motorB</param>
+                <param name="motor_C_name">ard_motorC</param>
+                <param name="loop_rate">30</param>
+                <param name="device">/dev/ttyACM1</param>
+                <param name="baud_rate">9600</param>
+                <param name="timeout_ms">1000</param>
+            </hardware>
+            <joint name="${prefix}motorA">
+                <command_interface name="position" />
+                <state_interface name="position" />
+                <state_interface name="velocity" />
+            </joint>
+            <joint name="${prefix}motorB">
+                <command_interface name="position" />
+                <state_interface name="position" />
+                <state_interface name="velocity" />
+            </joint>
+            <joint name="${prefix}motorC">
+                <command_interface name="position" />
+                <state_interface name="position" />
+                <state_interface name="velocity" />
+            </joint>
+        </ros2_control>
+    </xacro:macro>
+</robot>
