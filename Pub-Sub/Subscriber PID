@@ -19,11 +19,11 @@ public:
   }
 
 private:
-  void topic_callback(const std_msgs::msg::String::SharedPtr msg) const
+  void topic_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg) const
   {
-    RCLCPP_INFO(this->get_logger(), "Coordinates recivced: [%f, %f, %f]", msg->data.[0], msg->data.[1], msg->data.[2]);
+    RCLCPP_INFO(this->get_logger(), "Coordinates recivced: [%f, %f, %f]", msg->data[0], msg->data[1], msg->data[2]);
   }
-  rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr subscription_;
+  rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr subscriber_;
 };
 
 
