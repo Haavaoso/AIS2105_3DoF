@@ -17,9 +17,7 @@ public:
   MinimalPublisher()
   : Node("minimal_publisher"), x(0), y(3), z(9)
   {
-    //Publish string with coordinates
-    publisher_ = this->create_publisher<std_msgs::msg::String>("topic", 10);
-    //Publish array with coordinates
+
     publisher_array = this->create_publisher<std_msgs::msg::Float32MultiArray>("topic2", 10);
     //Timer
     timer_ = this->create_wall_timer(
@@ -29,23 +27,18 @@ public:
 private:
   void timer_callback()
   {
-    //Message string
-    auto message = std_msgs::msg::String();
-    message.data = "Ball coordinates  x:" + std::to_string(x)
-    + "y: " + std::to_string(y)
-    + "z: " + std::to_string(z);
+
     //Message vector
     auto message_array = std_msgs::msg::Float32MultiArray();
     message_array.data = {x, y ,z};
 
 
-    RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+    
     RCLCPP_INFO(this->get_logger(), "Coordinate vectors: [%f, %f, %f]", message_array.data[0], message_array.data[1], message_array.data[2]);
     publisher_->publish(message);
     publisher_array->publish(message_array);
   }
   rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
   rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr publisher_array;
   float x;
   float y;
