@@ -1,0 +1,53 @@
+#include <chrono>
+#include <memory>
+#include <vector>
+
+#include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/float32_multi_array.hpp"
+
+using namespace std::chrono_literals;
+
+/* Publisher that sends over float values of ball coordinates.
+ * Timer updates position every 10ms */
+
+class MinimalPublisher : public rclcpp::Node
+{
+public:
+  MinimalPublisher()
+  : Node("minimal_publisher"), x(0), y(3), z(9)
+  {
+
+    publisher_array = this->create_publisher<std_msgs::msg::Float32MultiArray>("topic2", 10);
+    //Timer
+    timer_ = this->create_wall_timer(
+      500ms, std::bind(&MinimalPublisher::timer_callback, this));
+  }
+
+private:
+  void timer_callback()
+  {
+
+    //Message vector
+    auto message_array = std_msgs::msg::Float32MultiArray();
+    message_array.data = {x, y ,z};
+
+
+    
+    RCLCPP_INFO(this->get_logger(), "Coordinate vectors: [%f, %f, %f]", message_array.data[0], message_array.data[1], message_array.data[2]);
+    publisher_array->publish(message_array);
+  }
+  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr publisher_array;
+  float x;
+  float y;
+  float z;
+};
+
+int main(int argc, char * argv[])
+{
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<MinimalPublisher>());
+  rclcpp::shutdown();
+  return 0;
+}
