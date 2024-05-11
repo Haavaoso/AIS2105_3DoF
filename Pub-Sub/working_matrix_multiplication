@@ -1,0 +1,41 @@
+//
+// Created by morte on 11/05/2024.
+//
+
+#include <cmath>
+#include <vector>
+#include <iostream>
+
+double L = 22.5;
+double h = L*sqrt(3.0/4.0);
+double z = 0;
+double gamma = 4;
+double theta = 2;
+
+double pos1[4] = {-L/2, -h/3, 0, 1};
+double pos2[4] = {-L/2, -h/3, 0, 1};
+double pos3[4] = {0, -2*h/3, 0, 1};
+
+double rot[4][4] = {{sin(gamma) * sin(theta), sin(gamma) * cos(theta), 0, 0},
+                    {0, cos(theta), -sin(theta), 0},
+                    {-sin(gamma), cos(gamma) * sin(theta), 0, z},
+                    {0, 0, 0, 1}};
+
+std::vector<std::vector<double>> newPos(double rotMat[4][4], double pos[4]){
+    std::vector<std::vector<double>> newPositionVector = {{0},{0},{0},{0}};
+    std::cout << h << std::endl;
+
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            newPositionVector[i][0] += rotMat[i][j]*pos[j];
+            std::cout << i << ":" << j  <<": " << rotMat[i][j] << " * " << pos[j] << std::endl;
+        }
+        std::cout << newPositionVector[i][0] << std::endl;
+    }
+    return newPositionVector;
+}
+
+int main() {
+    auto a = newPos(rot, pos1);
+    return 0;
+}
