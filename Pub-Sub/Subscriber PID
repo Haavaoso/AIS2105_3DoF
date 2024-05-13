@@ -13,6 +13,7 @@ using std::placeholders::_1;
 // hyp = 22.5
 // normal = 19.5
 int setpoint[3] = {0, 0, 0};
+float ball_pos[3] = {1, 0, 0};
 
 float L_1 = 4;
 float L_2 = 9.8;
@@ -22,6 +23,9 @@ double h = L * std::sqrt(3.0/ 4.0);
 double z_tuning = +0;
 double z_ = 10+z_tuning;
 
+//Maxmin output value of pid for degree conversion
+float max_pid = 10;
+float min_pid = -10;
 
 float pid_p = 1;
 float pid_i = 0.2;
@@ -35,7 +39,15 @@ float servo_angle_limit_min = -35;
 int max_pitch = 5;
 int min_pitch = -5;
 int max_roll = 5;
-int min_roll = -5;
+int min_roll = -5;// Driver code
+
+
+
+float servo1_ang = 90;
+float servo2_ang = 90;
+float servo3_ang = 90;
+
+
 
 
 double pos1_matrix[4] = {
@@ -77,17 +89,6 @@ void multiply(int m1, int m2, int mat1[][2], int n1, int n2,
     }
 }
 
-// Driver code
-int main()
-{
-    int mat1[][2] = { { 1, 1 }, { 2, 2 } };
-    int mat2[][2] = { { 1, 1 }, { 2, 2 } };
-    int m1 = 2, m2 = 2, n1 = 2, n2 = 2;
-
-    // Function call
-    multiply(m1, m2, mat1, n1, n2, mat2);
-    return 0;
-}
 
 
 
@@ -147,25 +148,6 @@ public:
   }
 };
 
-// Maxmin servo angles
-float servo_angle_limit_max = 85;
-float servo_angle_limit_min = -35;
-
-float servo1_ang = 90;
-float servo2_ang = 90;
-float servo3_ang = 90;
-
-// Maxminpitch possible by 3dof platform
-int max_pitch = 5;
-int min_pitch = -5;
-int max_roll = 5;
-int min_roll = -5;
-
-double PID_P = 0.2;
-double PID_I = 0.01;
-double PID_D = 0.01;
-PID PID_X(PID_P, PID_I, PID_D);
-PID PID_Y(PID_P, PID_I, PID_D);MultiplyWithTiling
 
 
 
@@ -219,8 +201,11 @@ std::vector<double> next_servo_pos(float pitch_deg, float roll_deg)
     std::cout << "Servo angles radians, 1: " << servo_ang_rad_test[0] << " 2: " << servo_ang_rad_test[1] << " 3: " << servo_ang_rad_test[2] << std::endl;
     std::cout << "Servo angles degree :) 1: " << servo_ang_deg_test[0] << " 2: " << servo_ang_deg_test[1] << " 3: " << servo_ang_deg_test[2] << std::endl;
     return (servo_ang_deg_test);
+}
 
 
+PID PID_X(pid_p, pid_i, pid_d);
+PID PID_Y(pid_p, pid_i, pid_d);
 
 
 
@@ -238,43 +223,21 @@ public:
 private:
 
 
-  double next_servo_pos()
-  {
-    double a = multiply(4, 4, P_roti, 4, 1, pos1) 
-    (P_roti, pos1);
-    double b = MultiplyWithTiling(P_roti, pos2);
-    double c = MultiplyWithTiling(P_roti, pos3);
-    double servo_heights = {{a[3][1]}, {b[3][1]}, {c[3][1]}};
-    double servo_ang[3];
-    for (int i = 1; i < size(servo_heights); i++)
-    {
-      double elbow_theta = M_PI - std::acos((-x * x - servo_heights[i] * servo_heights[i] + L_1 * L_1 + L_2 * L_2) / (2 * L_1 * L_2));
-      double servo_v = std::atan(x / servo_heights[i]) - std::atan((L_2 * std::sin(elbow_theta)) / (L_1 + L_2 * ::std::cos(elbow_theta)));
-      servo_ang[i] = servo_v;     
-    }
-    return servo_ang[3];
-  }
-
 
   void topic_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg) const
   {
     RCLCPP_INFO(this->get_logger(), "Coordinates recivced: [%f, %f, %f]", msg->data[0], msg->data[1], msg->data[2]);
     
     float pidx_ = PID_X.compute(setpoint[0], ball_pos[0]);
-    float pidy = PID_X.compute(setpoint[0], ball_pos[0]);
-
-    float max_pid = 10;
-    float min_pid = -10;
+    float pidy_ = PID_Y.compute(setpoint[1], ball_pos[1]);
+    
     // Map output of PID to table tilt
-    float pitch _deg= min_pitch + ((max_pitch - min_pitch) / (max_pid - min_pid)) * (pidx_ - min_pid);
-    float roll_deg = min_roll + ((max_roll - min_roll) / (max_pid - min_pid)) * (pidy - min_pid);
-    auto anglee = next_servo_pos();
+    float pitch_deg= min_pitch + ((max_pitch - min_pitch) / (max_pid - min_pid)) * (pidx_ - min_pid);
+    float roll_deg = min_roll + ((max_roll - min_roll) / (max_pid - min_pid)) * (pidy_ - min_pid);
+    auto anglee = next_servo_pos(pitch_deg, roll_deg);
 
-    RCLCPP_INFO(this->get_logger(), "PID IS CRAZY: [%f, %f]", pidy, pidx);
+    RCLCPP_INFO(this->get_logger(), "PID IS CRAZY: [%f, %f]", pidy_, pidx_);
     RCLCPP_INFO(this->get_logger(), "ROLL IS CRAZY: [%f, %f, %f]", anglee[0], anglee[1], anglee[2]);
-
-    //
-
   }
   rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr subscriber_;
 };
