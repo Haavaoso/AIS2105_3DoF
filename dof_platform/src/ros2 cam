@@ -1,0 +1,25 @@
+ros2 run usb_cam usb_cam_node_exe --ros-args -p video_device:=/dev/video2
+
+
+        if (!circles.empty())
+        {
+            for(const auto& circle : circles)
+            {
+                cv::Point center(cvRound(circle[0]), cvRound(circle[1]));
+                int radius = cvRound(circle[2]);
+
+                // Draw the circle center
+                cv::circle(circle_image, center, 1, cv::Scalar(255), 3, cv::LINE_AA);
+                // Draw the circle outline
+                cv::circle(circle_image, center, radius, cv::Scalar(255), 3, cv::LINE_AA);
+                
+                // Calculate and print the ball size assuming a distance of 1 meter
+                float distance = 1;
+                float ball_size = 4 * radius * distance;
+                std::cout << "Ball_size: " << ball_size << " meters" << std::endl;
+            }
+        }
+        else
+        {
+            std::cout << "No circles found." << std::endl;
+        }
