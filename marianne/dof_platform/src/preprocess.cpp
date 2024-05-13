@@ -6,52 +6,40 @@
 #include <image_transport/image_transport.hpp>
 #include <opencv2/opencv.hpp>
 #include <memory>
-class ImagePreprocessingNode : public rclcpp::Node
+
+class ImageProcessor : public rclcpp::Node
 {
 public:
-    ImagePreprocessingNode() : Node("image_preprocessing_node")
-    {
-        // Properly initialize it_ after the node construction
-        it_ = std::make_unique<image_transport::ImageTransport>(this->shared_from_this());
+  ImageProcessor() : Node("image_processor")
+  {
+    subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
+      "image_raw", 10, std::bind(&ImageProcessor::topic_callback, this, std::placeholders::_1));
 
-        // Now, subscribe and advertise using the dereferenced it_
-        image_subscriber_ = it_->subscribe("image_raw", 10, &ImagePreprocessingNode::image_callback, this);
-        image_publisher_ = it_->advertise("processed_image", 10);
-    }
-
-    ~ImagePreprocessingNode()
-    {
-        // Destructor to ensure cleanup if necessary, though unique_ptr handles it automatically
-    }
+    publisher_ = this->create_publisher<sensor_msgs::msg::Image>("image_clone", 10);
+    cv::namedWindow("Raw image for cam");
+  }
 
 private:
-    void image_callback(const sensor_msgs::msg::Image::ConstSharedPtr& msg)
-    {
-        try {
-            // Convert the ROS image message to an OpenCV image
-            cv::Mat cv_image = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8)->image;
+  void topic_callback(const sensor_msgs::msg::Image::SharedPtr msg)
+  {
+    cv_bridge::CvImagePtr cv_raw_image = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
+    
+    //klon bilde 
+    cv::Mat image_clone = cv_raw_image->image.clone();
 
-            // Convert the processed OpenCV image back to a ROS image message
-            auto out_msg = cv_bridge::CvImage(msg->header, sensor_msgs::image_encodings::MONO8, cv_image).toImageMsg();
+    //Sender prossesert bilde 
+    auto cloned_image_msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", image_clone).toImageMsg();
+    publisher_->publish(*cloned_image_msg);
+  }
 
-            // Publish the processed image
-            image_publisher_.publish(*out_msg);
-        } catch (const cv_bridge::Exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
-        }
-    }
-
-    std::unique_ptr<image_transport::ImageTransport> it_;
-    image_transport::Subscriber image_subscriber_;
-    image_transport::Publisher image_publisher_;
+  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;
 };
 
-int main(int argc, char **argv)
+int main(int argc, char * argv[])
 {
-    rclcpp::init(argc, argv);
-    auto node = std::make_shared<ImagePreprocessingNode>();
-    rclcpp::spin(node);
-    rclcpp::shutdown();
-    return 0;
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<ImageProcessor>());
+  rclcpp::shutdown();
+  return 0;
 }
-
