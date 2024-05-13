@@ -2,25 +2,23 @@
 #define _USE_MATH_DEFINES
 
 #include <memory>
-#include <vector>
-#include <cmath>
+
 #include <ostream>
+#include <chrono>     
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
 using std::placeholders::_1;
+
+#include "regulator.cpp"
 
 // hyp = 22.5
 // normal = 19.5
 int setpoint[3] = {0, 0, 0};
 float ball_pos[3] = {1, 0, 0};
 
-float L_1 = 4;
-float L_2 = 9.8;
-float x = 1.0; // Avstand fra tilkoplingspunkt plate til servo aktuator i x-planet
-float L = 22.5;
-double h = L * std::sqrt(3.0/ 4.0);
-double z_tuning = +0;
+
+double z_tuning = + 0;
 double z_ = 10+z_tuning;
 
 //Maxmin output value of pid for degree conversion
@@ -41,168 +39,9 @@ int min_pitch = -5;
 int max_roll = 5;
 int min_roll = -5;// Driver code
 
-
-
 float servo1_ang = 90;
 float servo2_ang = 90;
 float servo3_ang = 90;
-
-
-
-
-double pos1_matrix[4] = {
-    -L/2.0,
-    -h/3.0,
-    0.0,
-    1.0};
-double pos2_matrix[4] = {
-    L/2.0,
-    -h/3.0,
-    0.0,
-    1.0};
-double pos3_matrix[4] = {
-    0.0,
-    2.0*h/3.0,
-    0.0,
-    1.0};
-
-
-void multiply(int m1, int m2, int mat1[][2], int n1, int n2,
-              int mat2[][2])
-{
-    int x, i, j;
-    int res[m1][n2];
-    for (i = 0; i < m1; i++) {
-        for (j = 0; j < n2; j++) {
-            res[i][j] = 0;
-            for (x = 0; x < m2; x++) {
-                *(*(res + i) + j) += *(*(mat1 + i) + x)
-                                     * *(*(mat2 + x) + j);
-            }
-        }
-    }
-    for (i = 0; i < m1; i++) {
-        for (j = 0; j < n2; j++) {
-            std::cout << *(*(res + i) + j) << " ";
-        }
-        std::cout << "\n";
-    }
-}
-
-
-
-
-class PID
-{
-private:
-  double kp, ki, kd;
-  bool integral_limit = false;
-  int integral_cap = 20;
-  double integral; // Integral accumulator
-  double previous_error;
-  std::chrono::steady_clock::time_point last_time;
-
-public:
-  PID(double p, double i, double d) : kp(p), ki(i), kd(d), integral(0.0), previous_error(0.0)
-  {
-    last_time = std::chrono::steady_clock::now();
-  }
-
-  double compute(double setpoint, double ball_pos)
-  {
-    // Current time
-    auto now = std::chrono::steady_clock::now();
-
-    // Calculate dt
-    std::chrono::duration<double> dt = now - last_time;
-    double delta_time = dt.count();
-    delta_time = 0.5;
-    // Calculate the error
-    double error = setpoint - ball_pos;
-
-    // Integral term
-    integral += error * delta_time;
-
-    // Integral windup protection
-    if (integral_limit)
-    {
-      if (integral > integral_cap)
-      {
-        integral = integral_cap;
-      }
-      else if (integral < -integral_cap)
-      {
-        integral = -integral_cap;
-      }
-    }
-    // Derivative term
-    double derivative = (error - previous_error) / delta_time;
-    // PID output
-    double output = kp * error + ki * integral + kd * derivative;
-
-    // Update previous error and time
-    previous_error = error;
-    last_time = now;
-
-    return output;
-  }
-};
-
-
-
-
-std::vector<std::vector<double>> newPos(float gamma_deg, float theta_deg, double pos[4]){
-    // GAMMA = PITCH   THETA = ROLL
-    const double gamma_rad = M_PI/180 * gamma_deg;
-    const double theta_rad = M_PI/180 * theta_deg;
-    const double rotation_matrix[4][4] = {
-        {std::cos(gamma_rad) , std::sin(gamma_rad) * std::sin(theta_rad), std::sin(gamma_rad) * std::cos(theta_rad), 0},
-        {0.0, std::cos(theta_rad), -std::sin(theta_rad), 0.0},
-        {-std::sin(gamma_rad), std::cos(gamma_rad) * std::sin(theta_rad), std::cos(gamma_rad)*std::cos(theta_rad), z_},
-        {0.0, 0.0, 0.0, 1.0}};
-    std::vector<std::vector<double>> newPositionVector = {{0},{0},{0},{0}};
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            newPositionVector[i][0] += rotation_matrix[i][j]*pos[j];
-        }
-    }
-
-    // for (int i = 0; i < 4; i++)
-    // {
-    //     std::cout <<  i << ":   "   << newPositionVector[i][0] << std::endl;
-    // }
-    return newPositionVector;
-}
-
-
-std::vector<double> next_servo_pos(float pitch_deg, float roll_deg)
-{
-    const std::vector<std::vector<double>> a = newPos(pitch_deg, roll_deg, pos1_matrix);
-    const std::vector<std::vector<double>> b = newPos(pitch_deg, roll_deg, pos2_matrix);
-    const std::vector<std::vector<double>> c = newPos(pitch_deg, roll_deg, pos3_matrix);
-
-
-    double ball_heights[3] = {a[2][0], b[2][0], c[2][0]};
-    std::cout << "Z height. Point: " << ball_heights[0] << " Point 2: " << ball_heights[1] << " Point 3: " << ball_heights[2] << std::endl;
-    const float arm_l = L_1;
-    const float forearm_l = L_2;
-    // std::cout << "servo test angle: " << theta1_deg << std::endl;
-    std::vector<double> servo_ang_rad_test;
-    std::vector<double> servo_ang_deg_test;
-    for (const double y : ball_heights)
-    {
-
-        const double theta2 = +std::acos((x*x+y*y-arm_l*arm_l-forearm_l*forearm_l)/(2*forearm_l*arm_l));
-        double theta1 = std::atan2(y, x) - std::atan2(forearm_l * std::sin(theta2), arm_l + forearm_l * std::cos(theta2));
-        double theta1_deg = theta1 * 180/M_PI;
-        servo_ang_rad_test.push_back(theta1);
-        servo_ang_deg_test.push_back(theta1_deg);
-    };
-    std::cout << "Servo angles radians, 1: " << servo_ang_rad_test[0] << " 2: " << servo_ang_rad_test[1] << " 3: " << servo_ang_rad_test[2] << std::endl;
-    std::cout << "Servo angles degree :) 1: " << servo_ang_deg_test[0] << " 2: " << servo_ang_deg_test[1] << " 3: " << servo_ang_deg_test[2] << std::endl;
-    return (servo_ang_deg_test);
-}
-
 
 PID PID_X(pid_p, pid_i, pid_d);
 PID PID_Y(pid_p, pid_i, pid_d);
@@ -221,21 +60,18 @@ public:
   }
 
 private:
-
-
-
   void topic_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg) const
   {
     RCLCPP_INFO(this->get_logger(), "Coordinates recivced: [%f, %f, %f]", msg->data[0], msg->data[1], msg->data[2]);
     
     float pidx_ = PID_X.compute(setpoint[0], ball_pos[0]);
     float pidy_ = PID_Y.compute(setpoint[1], ball_pos[1]);
-    
+
     // Map output of PID to table tilt
     float pitch_deg= min_pitch + ((max_pitch - min_pitch) / (max_pid - min_pid)) * (pidx_ - min_pid);
     float roll_deg = min_roll + ((max_roll - min_roll) / (max_pid - min_pid)) * (pidy_ - min_pid);
-    auto anglee = next_servo_pos(pitch_deg, roll_deg);
-
+    double[3] anglee = next_servo_pos(pitch_deg, roll_deg);
+    
     RCLCPP_INFO(this->get_logger(), "PID IS CRAZY: [%f, %f]", pidy_, pidx_);
     RCLCPP_INFO(this->get_logger(), "ROLL IS CRAZY: [%f, %f, %f]", anglee[0], anglee[1], anglee[2]);
   }
@@ -249,3 +85,19 @@ int main(int argc, char *argv[])
   rclcpp::shutdown();
   return 0;
 }
+
+
+std::vector<double> servo_angle_outputs(double angles[3]){
+  for (int i = 0; i < 3; i++){
+    if (angles[i] >= servo_angle_limit_max){
+      angles[i] = servo_angle_limit_max - 1;
+    }
+    else if (angles[i] <= servo_angle_limit_min)
+    {
+      angles[i] = servo_angle_limit_min + 1;
+    }
+  }
+}
+
+float servo_angle_limit_max = 85;
+float servo_angle_limit_min = -35;
