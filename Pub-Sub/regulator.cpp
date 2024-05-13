@@ -149,9 +149,13 @@ std::vector<double> next_servo_pos(float pitch_deg, float roll_deg, float z_)
     for (const double y : ball_heights)
     {
 
-        const double theta2 = +std::acos((x*x+y*y-arm_l*arm_l-forearm_l*forearm_l)/(2*forearm_l*arm_l));
-        double theta1 = std::atan2(y, x) - std::atan2(forearm_l * std::sin(theta2), arm_l + forearm_l * std::cos(theta2));
-        double theta1_deg = theta1 * 180/M_PI;
+        //const double theta2 = +std::acos((x*x+y*y-arm_l*arm_l-forearm_l*forearm_l)/(2*forearm_l*arm_l));
+        //double theta1 = std::atan2(y, x) - std::atan2(forearm_l * std::sin(theta2), arm_l + forearm_l * std::cos(theta2));
+        //double theta1_deg = theta1 * 180/M_PI;
+        double alpha = std::acos(forarm_1*forearm_1 + arm_1*arm_1 - x*x - y*y) / (2*arm_1*std::sqrt(x*x+y*y));
+        double beta = std::atan(y / x)
+        double theta_1 = alpha - beta
+        double theta_1deg = (alpha - beta)*180/M_PI
         servo_ang_rad_test.push_back(theta1);
         servo_ang_deg_test.push_back(theta1_deg);
     };
