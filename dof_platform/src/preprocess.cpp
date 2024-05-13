@@ -27,8 +27,6 @@ private:
   {
     int sigma = this->get_parameter("sigma").as_int();
 
-
-
     cv_bridge::CvImagePtr cv_raw_image = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     
     //klon bilde 
@@ -40,7 +38,6 @@ private:
 
     cv::Mat img_blur;
     cv::GaussianBlur(img_gray, img_blur, cv::Size(7,7), sigma, sigma);
-    
   
     //Sender prossesert bilde 
     auto pre_processed_image = cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", img_blur).toImageMsg(); 

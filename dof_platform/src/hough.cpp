@@ -1,33 +1,32 @@
-#include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/image.hpp"
-#include "cv_bridge/cv_bridge.h"
-#include <opencv2/opencv.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <cv_bridge/cv_bridge.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <vector>
-//https://docs.opencv.org/3.4/d4/d70/tutorial_hough_circle.html
+#include <opencv2/core.hpp>
+
 class HoughTransformNode : public rclcpp::Node
 {
 public:
     HoughTransformNode() : Node("hough_transform")
     {
-        this->declare_parameter<float>("dp", 1);
-        this->declare_parameter<float>("min_dist", 480/1);
+        this->declare_parameter<float>("dp", 1.0);
+        this->declare_parameter<float>("min_dist", 480.0);
         this->declare_parameter<int>("param1", 100);
         this->declare_parameter<int>("param2", 30);
         this->declare_parameter<int>("min_radius", 1);
         this->declare_parameter<int>("max_radius", 30);
-
+	this->declare_parameter<int>("canny_minThres",50);
+        this->declare_parameter<int>("canny_maxThres",150);
         subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-            "canny_edged_image", 10, std::bind(&HoughTransformNode::image_callback, this, std::placeholders::_1));
+            "pre_processed_image", 10, std::bind(&HoughTransformNode::image_callback, this, std::placeholders::_1));
         publisher_ = this->create_publisher<sensor_msgs::msg::Image>("hough_processed_image", 10);
     }
-
 private:
     void image_callback(const sensor_msgs::msg::Image::SharedPtr msg)
     {
-        cv::Mat black_image = cv::Mat::zeros(480, 640, CV_8UC1);
-        cv::Mat edged_image = cv_bridge::toCvCopy(msg, "mono8")->image;
+        auto cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
+        cv::Mat edged_image = cv_ptr->image;
         std::vector<cv::Vec3f> circles;
 
         float dp = this->get_parameter("dp").as_double();
@@ -36,40 +35,40 @@ private:
         int param2 = this->get_parameter("param2").as_int();
         int min_radius = this->get_parameter("min_radius").as_int();
         int max_radius = this->get_parameter("max_radius").as_int();
+        int canny_minThres = this->get_parameter("canny_minThres").as_int();
+        int canny_maxThres = this->get_parameter("canny_maxThres").as_int();
 
-        //Detekterer sirkler ved hjelp av hough
-        cv::HoughCircles(edged_image, circles, cv::HOUGH_GRADIENT, dp, min_dist, param1, param2, min_radius, max_radius);
+        cv::Mat edges;
+        cv::Canny(edged_image, edges, canny_minThres, canny_maxThres);
+        cv::HoughCircles(edges, circles, cv::HOUGH_GRADIENT, dp, min_dist, param1, param2, min_radius, max_radius);
 
+        cv::Mat circle_image = cv::Mat::zeros(edges.size(), CV_8UC1);
 
-            ////tegner sirklene på bilde
-            //for (auto &circle : circles) {
-            //    cv::Point center(cvRound(circle[0]), cvRound(circle[1]));
-            //    int radius = cvRound(circle[2]);
-            //    cv::circle(src, center, radius, cv::Scalar(0, 255, 0), 3, cv::LINE_AA);
-            //}
-
-
-        
-        for( size_t i = 0; i < circles.size(); i++ )
+	if (!circles.empty())
         {
-            cv::Vec3i c = circles[i];
-            cv::Point center = cv::Point(c[0], c[1]);
+            // Extract the first detected circle's parameters
+            float x = circles[0][0];  // X coordinate of the center
+            float y = circles[0][1];  // Y coordinate of the center
+            int radius = cvRound(circles[0][2]);  // Radius of the circle
 
-            // circle center
-            cv::circle(black_image, center, 1, cv::Scalar(0,100,100), 3, cv::LINE_AA);
+            // Draw the detected circle and its center
+            cv::Point center(cvRound(x), cvRound(y));
+            cv::circle(circle_image, center, 1, cv::Scalar(255), 3, cv::LINE_AA);
+            cv::circle(circle_image, center, radius, cv::Scalar(255), 3, cv::LINE_AA);
 
-            // circle outline
-            int radius = c[2];
-            cv::circle(black_image, center, radius, cv::Scalar(255,0,255), 3, cv::LINE_8);
+            // Report the position of the ball
+            std::cout << "Ball position - X: " << x << ", Y: " << y << std::endl;
+        }
+        else
+        {
+            std::cout << "No circles found." << std::endl;
         }
 
 
-
-
-
-        auto circle_msg = cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", black_image).toImageMsg();
+        auto circle_msg = cv_bridge::CvImage(std_msgs::msg::Header(), "mono8", circle_image).toImageMsg();
         publisher_->publish(*circle_msg);
     }
+
 
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;
@@ -78,7 +77,8 @@ private:
 int main(int argc, char **argv)
 {
     rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<HoughTransformNode>());
+    auto node = std::make_shared<HoughTransformNode>();
+    rclcpp::spin(node);
     rclcpp::shutdown();
     return 0;
 }
