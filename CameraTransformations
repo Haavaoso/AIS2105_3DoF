@@ -1,0 +1,76 @@
+#include <cmath>
+#include <vector>
+#include <iostream>
+
+double pi = M_PI;
+
+double theta_deg = 0.0; 
+double theta = theta_deg*pi/180.0; //pitch frå subscriber
+
+double gamma_deg = 0.0;
+double gamma1 = gamma_deg * pi / 180.0; //roll frå subscriber, heite gamma1 fordi nokke navnkollisjon, kan sikk endrast.
+
+double alpha_deg = 150.0;
+double alpha = alpha_deg*pi/180.0;
+double z = 45.0; //lengde til ball
+
+double x = 300.00; //piksel x koordinat
+double y = 200.0; //piksel y koordinat
+
+
+// SUBSCRIBE TO (X,Y) PIKSEL POS, PITCH(gamma), ROLL(theta) OG Z-distanse TIL BALL(z). OUTPUT getGaming() skift navn kanskje :()
+
+std::vector<std::vector<double>> pixelPos ={
+        {x},
+        {y},
+        {1.0}
+};
+
+std::vector<std::vector<double>> cameraMatrix ={ // DITTA E INVERSE KAMERAMATRISE
+        {0.001574803149606, 0.0, -0.544881889763779},
+        {0.0, 0.001572327044025, -0.355345911949686},
+        {0.0, 0.0, 1.0}
+};
+
+std::vector<std::vector<double>> transformationMatrix = { // TRANSFORMATION FRÅ KAMERA TIL WORLD KOORDINATSYSTEM
+        {cos(gamma1) * cos(alpha), sin(gamma1) * sin(theta) * cos(alpha) - sin(alpha) * cos(theta), cos(alpha) * sin(gamma1) * cos(theta) + sin(alpha) * sin(theta), 0.0},
+        {sin(alpha)*cos(gamma1),   sin(gamma1) * sin(theta) * sin(alpha) + cos(alpha) * cos(theta), sin(alpha) * sin(gamma1) * cos(theta) - sin(theta) * cos(alpha), 0.0},
+        {-sin(gamma1),             cos(gamma1) * sin(theta),                                        cos(gamma1) * cos(theta),                                        0.0},
+        {0.0,                        0.0,                                                               0.0,                                                               1.0}
+};
+
+std::vector<std::vector<double>> zMatrix ={
+        {z, 0.0, 0.0},
+        {0.0, z, 0.0},
+        {0.0, 0.0, z},
+        {0.0, 0.0, 1.0},
+};
+
+std::vector<std::vector<double>> matrixMultiplication(std::vector<std::vector<double>> mat1, std::vector<std::vector<double>> mat2) {
+    auto m = mat1.size(); 
+    auto n = mat1[0].size();
+    auto p = mat2[0].size();
+    
+    std::vector<std::vector<double>> result(m, std::vector<double>(p, 0));
+
+    for (int i = 0; i < m; i++) {
+        for (int j = 0.0; j < p; j++) {
+            for (int k = 0; k < n; k++) {
+                result[i][j] += mat1[i][k] * mat2[k][j];
+            }
+        }
+    }
+    return result;
+}
+
+std::vector<std::vector<double>> getGaming(){
+    auto a = matrixMultiplication(transformationMatrix,zMatrix);
+    auto b = matrixMultiplication(a,cameraMatrix);
+    auto c = matrixMultiplication(b, pixelPos);
+    return c;
+}
+
+int main() {
+    getGaming();
+    return 0;
+}
