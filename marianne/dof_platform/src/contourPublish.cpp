@@ -26,7 +26,6 @@ public:
         publisher_ = this->create_publisher<sensor_msgs::msg::Image>("processed_image", 10);
         // Publisher for ball coordinates
         point_publisher_ = this->create_publisher<geometry_msgs::msg::Point>("ball_coordinates", 10);
-    
     }
 
 private:
@@ -72,6 +71,7 @@ private:
 	// Drawing contours on the original image	
         cv::Mat drawing = color_image.clone();  
 	for (const auto& contour : contours) {
+	        std::vector<cv::Vec3f> circles;
     		float contour_area = cv::contourArea(contour);
     		if (contour_area > area) { // Increase this threshold to exclude small areas
        			 cv::Point2f center;
@@ -86,17 +86,21 @@ private:
                 geometry_msgs::msg::Point point_msg;
                 point_msg.x = center.x;
                 point_msg.y = center.y;
-                point_msg.z = 0; // Assuming flat surface or fixed depth
+                point_msg.z = 1; // Assuming ratio distance is 1
                 point_publisher_->publish(point_msg);
+                RCLCPP_INFO(this->get_logger(), "Detected ball at X: %f, Y: %f, Radius: %f", center.x, center.y, radius);
         }
+
+        if (circles.empty()) {
+            RCLCPP_WARN(this->get_logger(), "No balls found.");
+        }
+
+        
     }
 }
-
-
         auto drawing_msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", drawing).toImageMsg();
         publisher_->publish(*drawing_msg);
     }
-
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr subscription_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher_;
     rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr point_publisher_;

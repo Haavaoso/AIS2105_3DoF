@@ -27,9 +27,20 @@ ament_target_dependencies(preprocess
   geometry_msgs
   OpenCV)
 
-# Executable for Hough transform
+# Executable for Contour transform
 add_executable(contourPub src/contourPublish.cpp)
 ament_target_dependencies(contourPub 
+  rclcpp 
+  sensor_msgs 
+  cv_bridge 
+  image_transport
+  vision_msgs
+  geometry_msgs
+  OpenCV)
+  
+  # Executable for Hough transform
+add_executable(hough src/hough.cpp)
+ament_target_dependencies(hough 
   rclcpp 
   sensor_msgs 
   cv_bridge 
@@ -42,6 +53,7 @@ ament_target_dependencies(contourPub
 install(TARGETS 
   preprocess
   contourPub
+  hough
   DESTINATION lib/${PROJECT_NAME})
 
 # Package setup
