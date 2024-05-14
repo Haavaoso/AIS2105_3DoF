@@ -12,9 +12,9 @@ public:
     TransformNode() : Node("contour_transform")
     {
         // Declare HSV range parameters
-        this->declare_parameter<int>("h_min", 10);
-        this->declare_parameter<int>("s_min", 150);
-        this->declare_parameter<int>("v_min", 50);
+        this->declare_parameter<int>("h_min", 20);
+        this->declare_parameter<int>("s_min", 180);
+        this->declare_parameter<int>("v_min", 120);
         this->declare_parameter<int>("h_max", 25);
         this->declare_parameter<int>("s_max", 255);
         this->declare_parameter<int>("v_max", 255);  
@@ -23,7 +23,7 @@ public:
         subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
             "pre_processed_image", 10, std::bind(&TransformNode::image_callback, this, std::placeholders::_1));
         // Publisher for processed images
-        publisher_ = this->create_publisher<sensor_msgs::msg::Image>("processed_image", 10);
+        publisher_ = this->create_publisher<sensor_msgs::msg::Image>("ball_processed_image", 10);
         // Publisher for ball coordinates
         point_publisher_ = this->create_publisher<geometry_msgs::msg::Point>("ball_coordinates", 10);
     }
