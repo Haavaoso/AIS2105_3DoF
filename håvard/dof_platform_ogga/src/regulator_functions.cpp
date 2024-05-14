@@ -10,7 +10,8 @@ double h = L * std::sqrt(3.0/ 4.0);
 // Maxmin servo angles
 float servo_angle_limit_max = 85;
 float servo_angle_limit_min = -35;
-
+float max_pid = 10;
+float min_pid = -10;
 double pos1_matrix[4] = {
     -L/2.0,
     -h/3.0,
@@ -31,7 +32,7 @@ class PID
 {
 private:
   double kp, ki, kd;
-  bool integral_limit = false;
+  bool integral_limit = true;
   int integral_cap = 20;
   double integral; // Integral accumulator
   double previous_error;
@@ -54,7 +55,7 @@ public:
     delta_time = 0.5;
     // Calculate the error
     double error = setpoint - ball_pos;
-
+    std::cout << "ERROR :))): " << error << std::endl;
     // Integral term
     integral += error * delta_time;
 
@@ -78,6 +79,16 @@ public:
     // Update previous error and time
     previous_error = error;
     last_time = now;
+
+
+    
+    if (output >= max_pid){
+      output = max_pid;
+    }
+    else if (output <= min_pid)
+    {
+      output = min_pid + 1;
+    }
 
     return output;
   }

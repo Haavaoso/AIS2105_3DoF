@@ -56,11 +56,15 @@ ament_target_dependencies(canny_edge
   OpenCV)
 
 
-  add_executable(regulator src/regulator.cpp)
+add_executable(regulator src/regulator.cpp)
 ament_target_dependencies(regulator 
 rclcpp
 std_msgs)
 
+#add_executable(angles src/Servo_ang.cpp)
+#ament_target_dependencies(angles 
+#rclcpp
+#std_msgs)
 
 add_executable(launcher src/launcher.cpp)
 ament_target_dependencies(launcher 
@@ -72,16 +76,13 @@ ament_target_dependencies(launcher
   vision_msgs
   OpenCV)
 
-# Add launcher to installation targets
 install(TARGETS 
   preprocess
-  hough_transform
   canny_edge
+  hough_transform
   regulator
   launcher
   DESTINATION lib/${PROJECT_NAME})
 
-   
-# Package setup
 ament_package()
 

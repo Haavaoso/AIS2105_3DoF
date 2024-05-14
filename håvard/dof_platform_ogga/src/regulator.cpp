@@ -14,7 +14,8 @@ using std::placeholders::_1;
 
 // hyp = 22.5
 // normal = 19.5
-int setpoint[3] = {0, 0, 0};
+int setpoint[3] = {313, 278,
+ 0};
 float ball_pos[3] = {1, 0, 0};
 
 
@@ -22,12 +23,11 @@ double z_tuning = + 0;
 double z_ = 10+z_tuning;
 
 //Maxmin output value of pid for degree conversion
-float max_pid = 10;
-float min_pid = -10;
 
-float pid_p = 1;
-float pid_i = 0.2;
-float pid_d = 0.1;
+
+float pid_p = 0.1;
+float pid_i = 0.02;
+float pid_d = 0.01;
 
 // Maxminpitch possible by 3dof platform
 int max_pitch = 5;
@@ -53,19 +53,24 @@ public:
     subscriber_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
         "ball_position", 10, std::bind(&Platform_Regulator::topic_callback, this, _1));
   
-    publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("servo_angle_array", 10);
+    publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("servo_angle_array", 100);
   }
 
 private:
   void topic_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg) const
   {
     RCLCPP_INFO(this->get_logger(), "Coordinates recivced: [%f, %f, %f]", msg->data[0], msg->data[1], msg->data[2]);
-    float pidx_ = PID_X.compute(setpoint[0], ball_pos[0]);
-    float pidy_ = PID_Y.compute(setpoint[1], ball_pos[1]);
+    float pidx_ = PID_X.compute(setpoint[0], msg->data[0]);
+    float pidy_ = PID_Y.compute(setpoint[1], msg->data[1]);
+
+    std::cout << "PIDX: " << pidx_ << " PIDY: " << pidy_ << std::endl;
 
     // Map output of PID to table tilt
-    float pitch_deg= min_pitch + ((max_pitch - min_pitch) / (max_pid - min_pid)) * (pidx_ - min_pid);
+    float pitch_deg = min_pitch + ((max_pitch - min_pitch) / (max_pid - min_pid)) * (pidx_ - min_pid);
     float roll_deg = min_roll + ((max_roll - min_roll) / (max_pid - min_pid)) * (pidy_ - min_pid);
+
+
+    std::cout << "pitch: " << pitch_deg << " roll_deg: " << roll_deg << std::endl;
     std::vector<double> calculations_deg = next_servo_pos(pitch_deg, roll_deg, z_);
     std::vector<double> anglee = servo_angle_outputs(calculations_deg);
     
@@ -92,7 +97,5 @@ int main(int argc, char *argv[])
   rclcpp::shutdown();
   return 0;
 }
-
-
 
 

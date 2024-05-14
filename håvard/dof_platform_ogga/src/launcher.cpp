@@ -14,8 +14,6 @@ int main() {
         "ros2 run node_hell hough_transform",
         "ros2 run node_hell canny_edge",
         "ros2 run node_hell regulator"
-        "rqt"
-        "rqt_graph"
     };
 
     std::vector<std::thread> threads;
