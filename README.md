@@ -1,4 +1,4 @@
-https://imgflip.com/i/8q0r1p
+8q0r1p.jpg
 # Installation
 Clone the repo to a ROS2 workspace
 Remember to source the workspace
