@@ -53,22 +53,26 @@ public:
     subscriber_ = this->create_subscription<std_msgs::msg::Float32MultiArray>(
         "ball_position", 10, std::bind(&Platform_Regulator::topic_callback, this, _1));
   
-    publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("servo_angle_array", 100);
+    publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("servo_angle_array", 10);
+    publisher_pid = this->create_publisher<std_msgs::msg::Float32MultiArray>("pitch_n_roll", 10);
+
   }
 
 private:
   void topic_callback(const std_msgs::msg::Float32MultiArray::SharedPtr msg) const
   {
+    auto array_pitch_roll = std_msgs::msg::Float32MultiArray();
     RCLCPP_INFO(this->get_logger(), "Coordinates recivced: [%f, %f, %f]", msg->data[0], msg->data[1], msg->data[2]);
     float pidx_ = PID_X.compute(setpoint[0], msg->data[0]);
     float pidy_ = PID_Y.compute(setpoint[1], msg->data[1]);
-
+    
     std::cout << "PIDX: " << pidx_ << " PIDY: " << pidy_ << std::endl;
 
     // Map output of PID to table tilt
     float pitch_deg = min_pitch + ((max_pitch - min_pitch) / (max_pid - min_pid)) * (pidx_ - min_pid);
     float roll_deg = min_roll + ((max_roll - min_roll) / (max_pid - min_pid)) * (pidy_ - min_pid);
-
+ 
+    array_pitch_roll = {pitch_deg, roll_deg};
 
     std::cout << "pitch: " << pitch_deg << " roll_deg: " << roll_deg << std::endl;
     std::vector<double> calculations_deg = next_servo_pos(pitch_deg, roll_deg, z_);
@@ -82,9 +86,13 @@ private:
     auto array_ = std_msgs::msg::Float32MultiArray();
     array_.data = {anglee[0], anglee[1], anglee[2]};
     publisher_->publish(array_);
+    publisher_pid->publish(array_pitch_roll);
+
   }
   rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr subscriber_;
   rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr publisher_;
+  rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr publisher_pid;
+
   float x;
   float y;
   float z;
