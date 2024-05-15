@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="3dof_platform">
+
+<!-- Platform -->
+  <xacro:property name="platform_radius" value="0.5" />
+  <xacro:property name="platform_thickness" value="0.05" />
+  <xacro:property name="ball_radius" value="0.04" />
+
+  <!-- Base link -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <cylinder radius="${platform_radius}" length="${platform_thickness}" />
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+  </link>
+  
+  <!-- Ping pong ball link -->
+  <link name="ping_pong_ball">
+    <visual>
+      <geometry>
+        <sphere radius="${ball_radius}" />
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- Fixed joint connecting ping pong ball to the base -->
+  <joint name="ball_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="ping_pong_ball"/>
+    <origin xyz="0 0 0.1" rpy="0 0 0"/> <!-- Position the ball above the base -->
+  </joint>
+
+</robot>
+
