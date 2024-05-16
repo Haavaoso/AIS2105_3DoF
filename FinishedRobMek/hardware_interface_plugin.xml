@@ -1,0 +1,9 @@
+<library path="arduino_driver">
+  <class name="arduino_driver/ThreeDOFArduinoHardware"
+         type="arduino_driver::ThreeDOFArduinoHardware"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+		ROS2 Control System Driver for the a 3DOF Platform using an Arduino.
+    </description>
+  </class>
+</library>
